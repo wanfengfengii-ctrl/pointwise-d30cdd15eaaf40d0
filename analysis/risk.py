@@ -3,10 +3,15 @@ from fractions import Fraction
 import sqlite3
 
 from analysis.overlap import condition_mass
+from analysis.plan import plan as _joint_plan
 from analysis.request import RiskRequest, resolve_request, validate_distinct_total
 from exchange.evidence import SamplingEvidence, validate_evidence
 from ledger import InvalidInput
 from report.issue import PublishedReport, issue_report
+
+
+def plan(db: sqlite3.Connection, left_receipt_id: str, right_receipt_id: str):
+    return _joint_plan(db, left_receipt_id, right_receipt_id)
 
 
 @dataclass(frozen=True)

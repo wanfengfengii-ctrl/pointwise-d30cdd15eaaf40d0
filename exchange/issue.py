@@ -7,6 +7,18 @@ from ledger import transaction
 from sampling.design import FrozenDesign, load_design
 
 
+def issue_coord(db: sqlite3.Connection, design_id: int) -> tuple[str, bytes]:
+    from exchange.resolve import issue_coord as _issue_coord
+
+    return _issue_coord(db, design_id)
+
+
+def resolve_ticket(db: sqlite3.Connection, card: bytes, ticket: int) -> tuple[str, ...]:
+    from exchange.resolve import resolve_ticket as _resolve_ticket
+
+    return _resolve_ticket(db, card, ticket)
+
+
 def build_evidence(design: FrozenDesign) -> SamplingEvidence:
     quotas = {item.layer_name: item.quota for item in design.quotas}
     layers = []

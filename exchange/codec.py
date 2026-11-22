@@ -20,46 +20,28 @@ def _canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
 
 
-def _payload(packet: BatchPacket) -> dict:
-    validate_evidence(packet.evidence)
-    return {
-        'version': 1,
-        'issue_id': require_key(packet.issue_id, 'issue_id'),
-        'shift_id': require_key(packet.shift_id, 'shift_id'),
-        'design_id': require_id(packet.design_id, 'design_id'),
-        'revision_id': require_id(packet.revision_id, 'revision_id'),
-        'protocol_version': require_key(packet.protocol_version, 'protocol version'),
-        'layers': [
-            {
-                'name': layer.name,
-                'quota': layer.quota,
-                'shared': [
-                    [mark.key, mark.abnormal]
-                    for mark in sorted(layer.shared, key=lambda item: item.key)
-                ],
-                'private_normal': layer.private_normal,
-                'private_abnormal': layer.private_abnormal,
-            }
-            for layer in sorted(packet.evidence.layers, key=lambda item: item.name)
-        ],
-    }
+def canonical(value: object) -> bytes:
+    return _canonical(value)
 
 
-def _digest(payload: dict) -> str:
-    return hashlib.sha256(_canonical(payload)).hexdigest()
+def evidence_payload(evidence: SamplingEvidence) -> list[dict]:
+    validate_evidence(evidence)
+    return [
+        {
+            'name': layer.name,
+            'quota': layer.quota,
+            'shared': [
+                [mark.key, mark.abnormal]
+                for mark in sorted(layer.shared, key=lambda item: item.key)
+            ],
+            'private_normal': layer.private_normal,
+            'private_abnormal': layer.private_abnormal,
+        }
+        for layer in sorted(evidence.layers, key=lambda item: item.name)
+    ]
 
 
-def packet_digest(packet: BatchPacket) -> str:
-    return _digest(_payload(packet))
-
-
-def encode_packet(packet: BatchPacket) -> bytes:
-    payload = _payload(packet)
-    return _canonical({'payload': payload, 'sha256': _digest(payload)})
-
-
-def _decode_evidence(payload: dict) -> SamplingEvidence:
-    layers = payload['layers']
+def evidence_from_payload(layers: object) -> SamplingEvidence:
     if type(layers) is not list:
         raise InvalidInput('packet layers must be an array')
     evidence = []
@@ -79,6 +61,35 @@ def _decode_evidence(payload: dict) -> SamplingEvidence:
             )
         )
     return SamplingEvidence(tuple(evidence))
+
+
+def _payload(packet: BatchPacket) -> dict:
+    return {
+        'version': 1,
+        'issue_id': require_key(packet.issue_id, 'issue_id'),
+        'shift_id': require_key(packet.shift_id, 'shift_id'),
+        'design_id': require_id(packet.design_id, 'design_id'),
+        'revision_id': require_id(packet.revision_id, 'revision_id'),
+        'protocol_version': require_key(packet.protocol_version, 'protocol version'),
+        'layers': evidence_payload(packet.evidence),
+    }
+
+
+def _digest(payload: dict) -> str:
+    return hashlib.sha256(_canonical(payload)).hexdigest()
+
+
+def packet_digest(packet: BatchPacket) -> str:
+    return _digest(_payload(packet))
+
+
+def encode_packet(packet: BatchPacket) -> bytes:
+    payload = _payload(packet)
+    return _canonical({'payload': payload, 'sha256': _digest(payload)})
+
+
+def _decode_evidence(payload: dict) -> SamplingEvidence:
+    return evidence_from_payload(payload['layers'])
 
 
 def decode_packet(wire: bytes) -> BatchPacket:

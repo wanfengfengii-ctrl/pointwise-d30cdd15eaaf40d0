@@ -69,6 +69,12 @@ CREATE TABLE IF NOT EXISTS issued_batches (
     wire BLOB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS coord_batches (
+    issue_id TEXT NOT NULL PRIMARY KEY,
+    design_id INTEGER NOT NULL REFERENCES designs(design_id),
+    wire BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sample_issues (
     sample_key TEXT NOT NULL,
     position INTEGER NOT NULL CHECK (position IN (0, 1)),

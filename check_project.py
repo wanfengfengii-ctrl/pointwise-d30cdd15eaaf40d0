@@ -3,6 +3,18 @@ import sys
 import unittest
 
 
+def _joint_checks() -> bool:
+    from samples.coordination import check_joint
+
+    try:
+        check_joint(verbose=False)
+    except Exception as error:  # report any joint failure as a test failure
+        print(f'JOINT CHECK FAILED: {error}', file=sys.stderr)
+        return False
+    print('JOINT SUMMARY result=PASS')
+    return True
+
+
 def main():
     suite = unittest.defaultTestLoader.discover('tests', top_level_dir='.')
     if suite.countTestCases():
@@ -23,7 +35,8 @@ def main():
           f'expected_failures={len(result.expectedFailures)} '
           f'unexpected_successes={len(result.unexpectedSuccesses)} '
           f'result={"PASS" if successful else "FAIL"}')
-    return 0 if successful else 1
+    joint_ok = _joint_checks()
+    return 0 if successful and joint_ok else 1
 
 
 if __name__ == '__main__':

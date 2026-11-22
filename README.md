@@ -26,6 +26,10 @@
 | `exchange.intake` | `receive(db, issue_id, wire_bytes) -> receipt_id`。`exchange.catalog.load_receipt(db, receipt_id)` 可查规范字节、已解码证据及校验值，未知号返回 `None`。 |
 | `analysis.risk` | `publish(db, left_receipt_id, right_receipt_id, m) -> PublishedReport`。`record` 持有正式号和精确 `Fraction` 结果，`parents` 按请求顺序列出实收号、发行号、方案、修订、规程和校验值，`receipt` 持有报告号和回执号。 |
 | `report.retrieve` | `read(db, report_id) -> PublishedReport | None`。未知报告返回 `None`，读取通过固定实收号还原父件。 |
+| `exchange.issue` | `issue_coord(db, design_id) -> (issue_id, wire_bytes)` 发行 V2 联合班件；`resolve_ticket(db, card, ticket)` 用本班卡和票号解出本班领片元组。 |
+| `exchange.intake` | `receive_coord(db, issue_id, wire_bytes) -> receipt_id` 中心实收联合班件，同号同件重投返回首个实收号。 |
+| `analysis.risk` | `plan(db, left_receipt_id, right_receipt_id) -> dict | None` 用两份异班联合实收件签存派样计划，无方案返回 `None`。 |
+| `report.retrieve` | `read_plan(db, plan_id) -> dict | None` 按原号读回签存计划，未知号返回 `None`。 |
 
 班次、层名、版本及登记名称使用非空文本。共享登记名称是同一工厂登记簿中经确认的键；不同班的本地编号可以不同。先提交测读再冻结，未选进框的测读留在修订内。一个实物在一个框中最多出现一次，重复别名也算重复。配额必须覆盖全部层并在零到层大小之间，空层取零。无放回选择的可能数和质量使用精确整数及有理数。布尔值不会被当作测读、配额、标识号或 `m` 的整数。异常输入抛出 `ledger.InvalidInput`，未知的请求来源或冻结依据抛出 `ledger.UnknownRecord`。SQLite 写入失败原样抛出，成功签报仅在事务提交后返回。坏件、错件、非法请求和回执持久化失败均保留此前记录。
 
@@ -42,6 +46,9 @@
 ```sh
 python3 -B check_project.py
 python3 -B -m samples.demo
+python3 -B -m samples.dispatch
 ```
+
+`check_project.py` 运行原有回归并追加联合派样核验：对样例每个情形把两班逐票领出的完整样本与分层抽法对照，核对频数等权与同票无共享片，并检查无方案边界；任一项失败返回非零。`samples.dispatch` 演示真实冻结、发行、实收，在两站关库后于中心签卡，关中心后按原号用同一票号在两班各自解出领片清单并汇总频数。
 
 演示在独立临时目录使用两份站库和一份中心库。样例中甲从 x、a 各等概率抽一片，乙从 x、b 各等概率抽一片，只有共享 x 报异常。`m=1` 的条件质量为 `1/4`，零异常概率为 `0/1`。`m=2` 的对应值为 `3/4`、`1/3`。`m=3` 不可达。演示打印重开中心后按号读回的结果、原父件和回执。回归还核对同边际不相交输入、四片不等权输入、层独立性、零配额、班内判级、断源实收、拒绝、回滚和历史领取。

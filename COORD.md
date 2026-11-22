@@ -28,6 +28,14 @@
 
 成功计划的票域、有序实收出处及两张卡同次提交，`read_plan` 按号返回签存值。SQLite 写入或提交失败原样抛出，本次不产生可领取的计划或班卡，可以重试。已经签存的计划在勘误和中心重开后照原号领取。
 
+## 本实现的编码
+
+- **联合班件**：V2 规范 JSON 外壳 `{"payload": ..., "sha256": ...}`，正文含 `version=2`、`issue_id`、`shift_id`、`design_id`、`revision_id`、`protocol_version` 与 `layers`。`layers` 与 V1 相同，逐层记录 `name`、`quota`、排序后的共享键及本班异常标记 `shared`、以及 `private_normal`、`private_abnormal` 计数。联合实收号形如 `coord-<issue_id>`；在中心 `coord_intake` 表内以首个实收号为准重投去重。
+- **班卡**：同一外壳，正文含 `version=2`、`plan_id`、`issue_id`、绑定发行的元数据、`N`、`layers` 及 `tickets`。`tickets` 是长度 `N` 的数组；第 `t` 项按层序给出 `[shared_indices, private_indices]`，分别是在该层**共享键序**与**私件槽序**中的下标。卡不带站内编号与原测；站端用本班冻结框把共享键与私件槽还原成具体实物。
+- **私件槽序**：每层内先排正常私件、再排异常私件，各组按站内编号升序。该次序只由冻结框决定，故勘误、再发行或重开站库后同票仍解出同一组实物。
+- **计划可行性**：设两班完整样本数为 `L`、`R`，取 `N = lcm(L, R)`。每个左样本出现 `N/L` 次、每个右样本出现 `N/R` 次，只在无共享键相交的样本对上连边，求整数最大流；满流则有方案，否则返回 `None`。整数流按网络流整性直接给出逐票配对，两班各自的完整样本等概率且逐票无撞片。
+- **实现入口**：`exchange/joint.py`（V2 编解码）、`exchange/samples.py`（样本枚举）、`analysis/coordination.py`（流求解）、`analysis/plan.py`（签发）、`exchange/resolve.py`（站端发行与解释）、`exchange/coord_intake.py`（中心实收）、`report/plan.py`（计划签存/读回）。
+
 ## 样例与运行
 
 `samples/coordination.py` 提供 `CASES` 和 `build_design`，可用它在两份独立站库冻结原始托盘。初始版本的 `python3 -B -m samples.coordination` 可执行 V1 对照，输出原风险报告的条件质量。

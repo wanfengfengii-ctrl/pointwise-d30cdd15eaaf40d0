@@ -36,4 +36,20 @@ CREATE TABLE IF NOT EXISTS report_receipts (
     token TEXT NOT NULL UNIQUE
 );
 
+CREATE TABLE IF NOT EXISTS coord_intake (
+    receipt_id TEXT NOT NULL PRIMARY KEY,
+    issue_id TEXT NOT NULL UNIQUE,
+    wire BLOB NOT NULL,
+    digest TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS plans (
+    plan_id TEXT NOT NULL PRIMARY KEY,
+    domain INTEGER NOT NULL CHECK (domain > 0),
+    left_receipt_id TEXT NOT NULL REFERENCES coord_intake(receipt_id),
+    right_receipt_id TEXT NOT NULL REFERENCES coord_intake(receipt_id),
+    left_card BLOB NOT NULL,
+    right_card BLOB NOT NULL
+);
+
 COMMIT;

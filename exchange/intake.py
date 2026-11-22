@@ -5,6 +5,12 @@ from exchange.codec import decode_packet
 from ledger import InvalidInput, require_key, transaction
 
 
+def receive_coord(db: sqlite3.Connection, issue_id: str, wire: bytes) -> str:
+    from exchange.coord_intake import receive_coord as _receive_coord
+
+    return _receive_coord(db, issue_id, wire)
+
+
 def receive(db: sqlite3.Connection, issue_id: str, wire: bytes) -> int:
     issue_id = require_key(issue_id, 'issue_id')
     packet = decode_packet(wire)
